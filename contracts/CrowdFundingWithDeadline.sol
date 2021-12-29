@@ -44,10 +44,10 @@ contract CrowdFundingWithDeadline {
     } 
 
     function checkAddress() public view returns (address){
-        return address(this);
+        return address(this); //'this' keyword 
     }
 
-    function currentTime() internal view returns(uint){ //definig currentTime function
+    function currentTime() internal virtual view returns(uint){ //definig currentTime function
         return block.timestamp;
     }
 }

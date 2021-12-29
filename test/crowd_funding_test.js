@@ -1,12 +1,12 @@
 let CrowdFundingWithDeadline = artifacts.require //importing SC
-('./CrowdFundingWithDeadline')
+('./TestCrowdFundingWithDeadline')
 
 contract('CrowdFundingWithDeadline', function (accounts) {
     //fields
     let contract; //reference to SC
     let contract1;
     let contractCreator = accounts[0]; //address that will deploy SC
-    let beneficiary = accounts[1];// '0x0000000000000000000000000000000000000000'; // //address of beneficiary ; 
+    let beneficiary = accounts[1];// address of beneficiary 
 
     const ONE_ETH = '1000000000000000000'; 
 
@@ -45,6 +45,9 @@ contract('CrowdFundingWithDeadline', function (accounts) {
         let targetAmount = await contract.targetAmount.call()
         console.log(targetAmount)
         expect(targetAmount.toString()).to.equal(ONE_ETH);//converting targetAmount to JavaScript number and then verify value using the constance that we provided
+
+        let fundingDeadLine = await contract.fundingDeadLine.call()
+        expect(fundingDeadLine.toNumber()).to.equal(600)
 
         let actualBeneficiary = await contract.beneficiary.call()
         console.log(beneficiary)
