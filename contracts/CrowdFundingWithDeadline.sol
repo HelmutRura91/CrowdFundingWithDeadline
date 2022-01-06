@@ -23,7 +23,7 @@ contract CrowdFundingWithDeadline {
         string memory contractName,
         uint targetAmountEth,
         uint durationInMin,
-        address beneficiaryAddress
+        address payable beneficiaryAddress
     )
         public 
     {
@@ -35,6 +35,10 @@ contract CrowdFundingWithDeadline {
     }
 
     function contribute() public payable inState(State.Ongoing){ //should be payable because users will call this method to send funds. Then we specify that this method can only be called if our contract is in the ongoing state 
+        require(
+            beforeDeadLine(),
+            "No contributions after the deadline"
+        );
         amounts[msg.sender] += msg.value; //update the value that a particular account has contributed, then use the address on the sender 'msg.sender' as the key and then increase this by the value that was contributed in this transaction
         totalCollected += msg.value; //increasing the totalCollected value
         if(totalCollected>=targetAmount){ //checking if we have already collected more then we need to 
@@ -43,11 +47,42 @@ contract CrowdFundingWithDeadline {
           
     } 
 
+    function finishCrowdFunding() public inState(State.Ongoing){
+        require(!beforeDeadLine(), "Cannot finish campaign before Deadline");
+        if(!collected){
+            state=State.Failed;
+        } else {
+               state= State.Succeeded;
+        }
+    }
+
+    function collect() public inState(State.Succeeded){
+        if(payable(beneficiary).send(totalCollected)){ //we are sending all the funds collected to the beneficiary and if the transaction succeeds then it is true and state will be changed to paidOut
+            state = State.PaidOut;
+        } else { //if the transaction is unsuccessful (i.e. beneficiary address is unvalid), state will be changed to failed
+            state = State.Failed;
+        }
+    }
+
+    function withdraw() public inState(State.Failed){ //the only method we can call in Failed state, it allows to get a refund for contributing
+        require(amounts[msg.sender] > 0, "Nothing was contributed"); //checking if particular user contributed to campaign
+        uint contributed = amounts[msg.sender]; //get amount of funds that this particular user has contributed
+        amounts[msg.sender] = 0; //changing the value that was contributed by this user to 0
+
+        if (!payable(msg.sender).send(contributed)){ //sending contributed amount to the user
+            amounts[msg.sender] = contributed; //if the transaction failes, we revert the change in amounts map and restore the value that was associated with this contributor
+        }
+    }
+            
     function checkAddress() public view returns (address){
         return address(this); //'this' keyword 
+    }
+
+    function beforeDeadLine() public view returns(bool){
+        return currentTime() < fundingDeadLine;
     }
 
     function currentTime() internal virtual view returns(uint){ //definig currentTime function
         return block.timestamp;
     }
-}
+}    

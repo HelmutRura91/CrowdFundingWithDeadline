@@ -9,7 +9,7 @@ contract('CrowdFundingWithDeadline', function (accounts) {
     let beneficiary = accounts[1];// address of beneficiary 
 
     const ONE_ETH = '1000000000000000000'; 
-
+    const ERROR_MSG = 'Returned error: VM Exception while processing transaction: revert';
     const ONGOING_STATE = '0';
     const FAILED_STATE = '1';
     const SUCCEEDED_STATE = '2';
@@ -21,7 +21,7 @@ contract('CrowdFundingWithDeadline', function (accounts) {
             //we need to provide 4 parameters
             'funding', //contract name
             1, //target amount
-            10, //duration in time
+            10, //duration in mins
             beneficiary, //ben. address
             //we have to provide two more parameters 
             {
@@ -31,31 +31,31 @@ contract('CrowdFundingWithDeadline', function (accounts) {
         
 
         );
-        console.log(accounts);
+        //console.log(accounts);
             
     });
     //first test
     it('contract is initialized', async function(){ //checking if all the fields in this SC were initialized correctly
         let address = await contract.checkAddress.call();
-        console.log(address)
+        //console.log(address)
         
         let campaignName = await contract.name.call() //checking if the campaignName is the one we passed in the constructor using 'call' mechanism and providing name of our field 'name'
         expect(campaignName).to.equal('funding');
 
         let targetAmount = await contract.targetAmount.call()
-        console.log(targetAmount)
+        //console.log(targetAmount)
         expect(targetAmount.toString()).to.equal(ONE_ETH);//converting targetAmount to JavaScript number and then verify value using the constance that we provided
 
         let fundingDeadLine = await contract.fundingDeadLine.call()
         expect(fundingDeadLine.toNumber()).to.equal(600)
 
         let actualBeneficiary = await contract.beneficiary.call()
-        console.log(beneficiary)
-        console.log(actualBeneficiary)
+        //console.log(beneficiary)
+        //console.log(actualBeneficiary)
         expect(actualBeneficiary).to.equal(beneficiary);
 
         let state = await contract.state.call()
-        console.log(state)
+        //console.log(state)
         //Truffle contract returns from enum field -> an object, which has the valueOf method, which is a string that contains the position of the enum vaule in the enum definition
         expect(state.valueOf().toString()).to.equal(ONGOING_STATE);
 
@@ -77,4 +77,57 @@ contract('CrowdFundingWithDeadline', function (accounts) {
 
     })
 
+    it('cannot contribute after deadline', async function(){
+        try {
+            await contract.setCurrentTime(601); //seting time one second after our deadline
+            await contract.sendTransaction({ //and then try to contribute to our camaipgn
+                value: ONE_ETH,
+                from: contractCreator
+            });
+            expect.fail(); //adding fail methond call to ensure that an exception was thrown during the test execution
+        } catch(error){
+            expect(error.message).to.equal(ERROR_MSG);
+        }
+    })
+
+    it('Crowdfunding Succeded', async function(){
+        await contract.contribute({value: ONE_ETH, from: contractCreator});
+        await contract.setCurrentTime(601);
+        await contract.finishCrowdFunding();
+        let state = await contract.state.call();
+        expect(state.valueOf().toString()).to.equal(SUCCEEDED_STATE);
+    })
+
+    it('Crowdfunding Failed', async function(){
+        await contract.setCurrentTime(601);
+        await contract.finishCrowdFunding();
+        let state = await contract.state.call();
+        expect(state.valueOf().toString()).to.equal(FAILED_STATE);
+    })
+
+    it('collected money paid out', async function(){
+        await contract.contribute({value: ONE_ETH, from: contractCreator});
+        await contract.setCurrentTime(601);
+        await contract.finishCrowdFunding();
+
+        let initAmount = await web3.eth.getBalance(beneficiary);
+        await contract.collect({from:contractCreator});
+
+        let newBalance = await web3.eth.getBalance(beneficiary)
+        expect((newBalance - initAmount).toString()).to.equal(ONE_ETH);
+
+        let state = await contract.state.call();
+        expect(state.valueOf().toString()).to.equal(PAID_OUT_STATE);
+    })
+
+    it('withdraw funds from the contract', async function(){
+        await contract.contribute({value: ONE_ETH - 100, from: contractCreator});
+        await contract.setCurrentTime(601);
+        await contract.finishCrowdFunding();
+
+        await contract.withdraw({from: contractCreator});
+        let amount = await contract.amounts.call(contractCreator);
+        expect(amount.toNumber()).to.equal(0);
+        
+    })
 })
