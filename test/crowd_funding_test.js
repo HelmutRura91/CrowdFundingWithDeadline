@@ -34,6 +34,7 @@ contract('CrowdFundingWithDeadline', function (accounts) {
         //console.log(accounts);
             
     });
+    
     //first test
     it('contract is initialized', async function(){ //checking if all the fields in this SC were initialized correctly
         let address = await contract.checkAddress.call();
@@ -130,4 +131,82 @@ contract('CrowdFundingWithDeadline', function (accounts) {
         expect(amount.toNumber()).to.equal(0);
         
     })
+/*
+    it('event is emittedxx', async function(){
+        let watcher = contract.CampaignFinished(); //create a watcher that will receive events from a SC, API is different from web3js API. To create a watcher for a specific event type I need to use 'contract' instance, then the name of the event I want to listen to. 
+        console.log('dupa');
+        console.log(watcher);
+        await contract.setCurrentTime(601);
+        await contract.finishCrowdFunding(); //need to interact with SC and finish crowdfunding
+        //the goal to the FinishCrowdFunding will emit the CampaignFinished event. Now when this event is emitted there are two ways to get event from watcher
+        //1. subscribe for events from the watcher
+        //2. get events that this watcher has received -> this we will use
+        let events = await watcher.get(); //using get method
+        let event = events[0]; //events is an array of events, so we get the first event in array
+        //we need to validate that this event was created with the right arguments
+        expect(event.args.totalCollected.toNumber()).to.equal(0);//check if the total collected ammount is equal to 0, because there was no contribution
+        expect(event.args.succeeded).to.equal(false);//verify that this campaing has failed - the succeeded flag is equal to false
+    })
+    
+ //wersja na getPastEvents
+    it('event is emittedxx', async function(){
+        let watcher = contract.getPastEvents('CampaignFinished', { fromBlock: 0, toBlock: 'latest' }, function(error, events){ console.log(events); }).then(console.log); //create a watcher that will receive events from a SC, API is different from web3js API. To create a watcher for a specific event type I need to use 'contract' instance, then the name of the event I want to listen to. 
+        console.log('dupa');
+        console.log(await web3.eth.getBlock("latest"))
+        console.log(await watcher);
+
+        await contract.setCurrentTime(601);
+        await contract.finishCrowdFunding(); //need to interact with SC and finish crowdfunding
+        //the goal to the FinishCrowdFunding will emit the CampaignFinished event. Now when this event is emitted there are two ways to get event from watcher
+        //1. subscribe for events from the watcher
+        //2. get events that this watcher has received -> this we will use
+        console.log(watcher);
+        let events = await watcher.get(); //using get method
+        let event = events[0]; //events is an array of events, so we get the first event in array
+        //we need to validate that this event was created with the right arguments
+        expect(event.args.totalCollected.toNumber()).to.equal(0);//check if the total collected ammount is equal to 0, because there was no contribution
+        expect(event.args.succeeded).to.equal(false);//verify that this campaing has failed - the succeeded flag is equal to false
+    })
+
+*/
+    it('event is emitted', async function(){
+        await contract.setCurrentTime(601);
+        let res = await contract.finishCrowdFunding();
+        let eventName = res.logs[0].event;
+        let eventRes = res.logs[0].args;
+        expect(Number.parseInt(eventRes.totalCollected)).to.equal(0);
+        expect(eventRes.succeeded).to.equal(false);
+        console.log(eventName);
+        console.log(eventRes);
+    })
+
+
+
+
+
+
+
+    // it('test czasu', async function(){
+    //     let contract = await CrowdFundingWithDeadline.new( //using the object of our SC and calling the 'new' method
+    //         //we need to provide 4 parameters
+    //         'funding', //contract name
+    //         1, //target amount
+    //         10, //duration in mins
+    //         beneficiary, //ben. address
+    //         //we have to provide two more parameters 
+    //         {
+    //             from: contractCreator, //address of an account that will deploy this Sc 
+    //             gas: 2000000 //max amount of gas that we are willing to pay to deploy SC
+    //         }
+        
+
+    //     );
+    //     console.log("dupa")
+
+    //     console.log(await contract.currentTime())
+    //     console.log("dupa2")
+    //     await contract.setCurrentTime(600)
+    //     console.log(await contract.currentTime())
+    // })
+    
 })

@@ -27,3 +27,5 @@ contract TestCrowdFundingWithDeadline is CrowdFundingWithDeadline{ //test contra
         time = newTime;
     }
 }
+
+//POCZYTAĆ O OVERRIDE W OBIEKTOWYM 

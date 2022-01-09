@@ -1,8 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
+//importing library that we've created
+import "./Utils.sol"; 
 
 contract CrowdFundingWithDeadline {
-    enum State { Ongoing, Failed, Succeeded, PaidOut} //list of possible states
+
+    using Utils for *;//using this library for all types
+
+    enum State { Ongoing, Failed, Succeeded, PaidOut} //list of possible states    
+
+    event CampaignFinished(
+        address adr,
+        uint totalCollected,
+        bool succeeded
+    );
 
     string public name; //name of campaign, a string
     uint public targetAmount; //target amount in weis, to be successfull
@@ -28,8 +39,8 @@ contract CrowdFundingWithDeadline {
         public 
     {
         name = contractName;
-        targetAmount = targetAmountEth * 1 ether;
-        fundingDeadLine = currentTime() + durationInMin * 1 minutes; //"currentTime" function is not defined, so we need to define it below 
+        targetAmount = Utils.etherToWei(targetAmountEth);//targetAmountEth * 1 ether;
+        fundingDeadLine = currentTime() + Utils.minutesToSeconds(durationInMin);//currentTime() + durationInMin * 1 minutes; //"currentTime" function is not defined, so we need to define it below 
         state = State.Ongoing;
         beneficiary = beneficiaryAddress;
     }
@@ -54,6 +65,8 @@ contract CrowdFundingWithDeadline {
         } else {
                state= State.Succeeded;
         }
+
+        emit CampaignFinished(address(this), totalCollected, collected);
     }
 
     function collect() public inState(State.Succeeded){
@@ -85,4 +98,6 @@ contract CrowdFundingWithDeadline {
     function currentTime() internal virtual view returns(uint){ //definig currentTime function
         return block.timestamp;
     }
+    
+    
 }    
